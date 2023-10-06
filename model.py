@@ -20,9 +20,9 @@ class NN():
 	def MSE(self, label, out):
 		return 0.5 * (label - out)**2
 
-	# def feed_forward(self):
-	# 	a = self.sig(self.X)
-	# 	return a
+	def feed_forward(self):
+		a = self.sig(self.X)
+		return a
 	def my_dense(A_in, W, b, f):
 		z = np.matmul(A_in, W) + b
 		A_out = f(z)
