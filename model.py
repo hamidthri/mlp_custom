@@ -1,4 +1,4 @@
-#!/usr/local/bin/python3
+
 import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
@@ -10,10 +10,11 @@ class NN():
 		self.X = X
 		self.layer = layer
 
-		self.weights={}
+		self.weights = {}
 		self.outs = {}
 		self.dw = {}
 		self.df = {}
+		self.da = {}
 
 	def weight(self):
 		for i in range(1, len(self.layer) + 1):
@@ -22,7 +23,7 @@ class NN():
 
 
 	def sig(self, z):
-		return (1 / (1 + np.exp(-z)))
+		return 1 / (1 + np.exp(-z))
 
 	def linear(self, z):
 		return z
@@ -31,7 +32,7 @@ class NN():
 		return np.max(0, z)
 
 	def d_sig(self, z):
-		return np.diagflat(self.sig(z) * (1 - self.sig (z)))
+		return np.diagflat(self.sig(z) * (1 - self.sig(z)))
 
 	def MSE(self, label, out):
 		return 0.5 * (label - out)**2
@@ -48,22 +49,26 @@ class NN():
 		if activation == 'sigmoid':
 			return self.d_sig(z)
 		elif activation == 'linear':
-			return 1
+			return np.eye(z.shape[0])
 	
 
 	def FF(self, A_in):
 		for i in range(1, len(self.layer) + 1):
-			z = np.matmul(self.weights['W1'], A_in) + self.weights['b1']
+			z = np.matmul(self.weights['W{}'.format(i)], self.outs['a{}'.format(i - 1)]) + self.weights['b{}'.format(i)]
 			self.outs["a{}".format(i)] = self.activations(i, z)
 			self.df['df{}'.format(i)] = self.d_activations(i, z)
-		return [self.outs["a{}".format(i)] for i in range(1, len(self.outs) + 1)]
+		return [self.outs["a{}".format(i)] for i in range(len(self.outs))]
 
+	def chain_rule(self):
+		for i in range(2, len(self.layer) + 1):
+			self.da['da{}'.format(i)] = self.df['df{}'.format(i)] @ self.weights['W{}'.format(i)]
 	def back_prob(self, i, inp):
-		error = self.Y[i, :] - self.out[-1]
-		for layer_index in range(1, len(self.layer) + 1):
-			j = len(self.layer) - layer_index
-			self.dw['dW{}'.format(j)] = - (self.lr * error * [self.df['df{}'.format(j + 1)] @ self.weights['W{}'.format(j + 1)] for j in reversed(j)]).T * self.df['df{}'.format(j)] *  inp
-			self.dw['db{}'.format(j)] = - (self.lr * error * [self.df['df{}'.format(j + 1)] @ self.weights['W{}'.format(j + 1)] for j in reversed(j)]).T * self.df['df{}'.format(j)]
+		self.chain_rule()
+		error = self.Y[i, :] - self.outs["a{}".format(len(self.layer))]
+		for i in range(1, len(self.layer) + 1):
+			j = len(self.layer) + 1 - i
+			self.dw['dW{}'.format(i)] = - (self.lr * error * [self.da['da{}'.format(j)] for j in reversed(j, 2)]).T * self.df['df{}'.format(j)] * self.outs['a{}'.format(i - 1)]
+			self.dw['db{}'.format(i)] = - (self.lr * error * [self.da['da{}'.format(j)] for j in reversed(j)]).T * self.df['df{}'.format(j)]
 
 	def update(self):
 		for i in range(len(self.layer) + 1):
@@ -75,7 +80,8 @@ class NN():
 		for j in range(self.Epochs):
 			for i in (range(self.X.shape[0])):
 				inp = self.X[i, :].reshape(-1, 1)
-				self.out = self.FF(inp)
+				self.outs['a0'] = inp
+				self.output = self.FF(inp)
 				self.weights['W1'] = self.weights['W1'] - self.back_prob(i, inp)
 				self.update()
 				# print(f"outs: {self.out}")
@@ -93,13 +99,12 @@ Y = 0.22 * X + 0.25
 layers = {
 			'Dense1':
        		{
-				'n': 2,
+				'n': 3,
         		'activation': 'sigmoid'
     		},
-         
 			'Dense2':
 			{
-				'n':1,
+				'n': 1,
 				'activation': 'linear'
 			}
 			
