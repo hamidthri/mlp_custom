@@ -59,17 +59,18 @@ class NN():
 			self.df['df{}'.format(i)] = self.d_activations(i, z)
 		return [self.outs["a{}".format(i)] for i in range(len(self.outs))]
 
-	def chain_rule(self):
-		for i in range(2, len(self.layer) + 1):
-			self.da['da{}'.format(i)] = self.df['df{}'.format(i)] @ self.weights['W{}'.format(i)]
+	def chain_rule(self, error):
+		self.da['da{}'.format(len(self.layer))] = error
+		for i in range(len(self.layer), 1, -1):
+			self.da['da{}'.format(i - 1)] = self.da['da{}'.format(i)] @ (self.df['df{}'.format(i)] @ self.weights['W{}'.format(i)])
 	def back_prob(self, i, inp):
-		self.chain_rule()
 		error = self.Y[i, :] - self.outs["a{}".format(len(self.layer))]
+		self.chain_rule(error)
 		for i in range(1, len(self.layer) + 1):
 			j = len(self.layer) + 1 - i
-			self.dw['dW{}'.format(i)] = - (self.lr * error * [self.da['da{}'.format(j)] for j in reversed(j, 2)]).T * self.df['df{}'.format(j)] * self.outs['a{}'.format(i - 1)]
-			self.dw['db{}'.format(i)] = - (self.lr * error * [self.da['da{}'.format(j)] for j in reversed(j)]).T * self.df['df{}'.format(j)]
-
+			self.dw['dW{}'.format(i)] = - (self.lr * self.da['da{}'.format(i)] @ self.df['df{}'.format(i)]).T @ (self.outs['a{}'.format(i - 1)]).T
+			self.dw['db{}'.format(i)] = - (self.lr * self.da['da{}'.format(i)] @ self.df['df{}'.format(i)]).T
+		return self.dw
 	def update(self):
 		for i in range(len(self.layer) + 1):
 			self.weights['W'.format(i)] = self.weights['W'.format(i)] - self.dw['dW{}'.format(i)]
@@ -82,7 +83,7 @@ class NN():
 				inp = self.X[i, :].reshape(-1, 1)
 				self.outs['a0'] = inp
 				self.output = self.FF(inp)
-				self.weights['W1'] = self.weights['W1'] - self.back_prob(i, inp)
+				self.weights = self.weights - self.back_prob(i, inp)
 				self.update()
 				# print(f"outs: {self.out}")
 				
