@@ -62,14 +62,13 @@ class NN():
 	def chain_rule(self, error):
 		self.da['da{}'.format(len(self.layer))] = error
 		for i in range(len(self.layer), 1, -1):
-			self.da['da{}'.format(i - 1)] = self.da['da{}'.format(i)] @ (self.df['df{}'.format(i)] @ self.weights['W{}'.format(i)])
+			self.da['da{}'.format(i - 1)] =(self.df['df{}'.format(i)] @ self.weights['W{}'.format(i)]).T @  self.da['da{}'.format(i)]
 	def back_prob(self, i, inp):
 		error = self.Y[i, :] - self.outs["a{}".format(len(self.layer))]
 		self.chain_rule(error)
 		for i in range(1, len(self.layer) + 1):
-			j = len(self.layer) + 1 - i
-			self.dw['dW{}'.format(i)] = - (self.lr * self.da['da{}'.format(i)] @ self.df['df{}'.format(i)]).T @ (self.outs['a{}'.format(i - 1)]).T
-			self.dw['db{}'.format(i)] = - (self.lr * self.da['da{}'.format(i)] @ self.df['df{}'.format(i)]).T
+			self.dw['dW{}'.format(i)] = - (self.lr * self.df['df{}'.format(i)] @ self.da['da{}'.format(i)]) @ (self.outs['a{}'.format(i - 1)]).T
+			self.dw['db{}'.format(i)] = - (self.lr * self.df['df{}'.format(i)] @ self.da['da{}'.format(i)])
 		return self.dw
 	def update(self):
 		for i in range(len(self.layer) + 1):
@@ -100,12 +99,12 @@ Y = 0.22 * X + 0.25
 layers = {
 			'Dense1':
        		{
-				'n': 3,
+				'n': 4,
         		'activation': 'sigmoid'
     		},
 			'Dense2':
 			{
-				'n': 1,
+				'n': 2,
 				'activation': 'linear'
 			}
 			
