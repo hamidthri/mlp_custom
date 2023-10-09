@@ -51,8 +51,16 @@ class NN():
 		elif activation == 'linear':
 			return np.eye(z.shape[0])
 	
-
-	def FF(self, A_in):
+	def predict(self):
+		for j in (range(self.X.shape[0])):
+			inp = self.X[j, :].reshape(-1, 1)
+			self.outs['a0'] = inp
+			for i in range(1, len(self.layer) + 1):
+				z = np.matmul(self.weights['W{}'.format(i)], self.outs['a{}'.format(i - 1)]) + self.weights['b{}'.format(i)]
+				self.outs["a{}".format(i)] = self.activations(i, z)
+			print(f"predicting for {X[j, :]}: {self.outs['a{}'.format(len(self.layer))][-1]}")
+		# return self.outs[-1]
+	def FF(self):
 		for i in range(1, len(self.layer) + 1):
 			z = np.matmul(self.weights['W{}'.format(i)], self.outs['a{}'.format(i - 1)]) + self.weights['b{}'.format(i)]
 			self.outs["a{}".format(i)] = self.activations(i, z)
@@ -62,7 +70,7 @@ class NN():
 	def chain_rule(self, error):
 		self.da['da{}'.format(len(self.layer))] = error
 		for i in range(len(self.layer), 1, -1):
-			self.da['da{}'.format(i - 1)] =(self.df['df{}'.format(i)] @ self.weights['W{}'.format(i)]).T @  self.da['da{}'.format(i)]
+			self.da['da{}'.format(i - 1)] = (self.df['df{}'.format(i)] @ self.weights['W{}'.format(i)]).T @  self.da['da{}'.format(i)]
 	def back_prob(self, i, inp):
 		error = self.Y[i, :] - self.outs["a{}".format(len(self.layer))]
 		self.chain_rule(error)
@@ -71,9 +79,9 @@ class NN():
 			self.dw['db{}'.format(i)] = - (self.lr * self.df['df{}'.format(i)] @ self.da['da{}'.format(i)])
 		return self.dw
 	def update(self):
-		for i in range(len(self.layer) + 1):
-			self.weights['W'.format(i)] = self.weights['W'.format(i)] - self.dw['dW{}'.format(i)]
-			self.weights['b'.format(i)] = self.weights['b'.format(i)] - self.dw['db{}'.format(i)]
+		for j in range(1, len(self.layer) + 1):
+			self.weights['W{}'.format(j)] = self.weights['W{}'.format(j)] - self.dw['dW{}'.format(j)]
+			self.weights['b{}'.format(j)] = self.weights['b{}'.format(j)] - self.dw['db{}'.format(j)]
 	def train(self):
 		self.weight()
 		print(f"W: {self.weights}")
@@ -81,51 +89,32 @@ class NN():
 			for i in (range(self.X.shape[0])):
 				inp = self.X[i, :].reshape(-1, 1)
 				self.outs['a0'] = inp
-				self.output = self.FF(inp)
-				self.weights = self.weights - self.back_prob(i, inp)
+				self.output = self.FF()
+				self.dw = self.back_prob(i, inp)
 				self.update()
 				# print(f"outs: {self.out}")
 				
 				
-			loss = self.MSE(self.Y[i, :], self.out[-1])
+			loss = self.MSE(self.Y[i, :], self.output[-1])
 			print(f"loss: {loss}")
 		print(f"W: {self.weights}")
 
 X = np.random.random((1000, 1))
-print(X.shape)
 
-Y = 0.22 * X + 0.25
+Y = 1 * X + 1
 
 layers = {
-			'Dense1':
-       		{
-				'n': 4,
-        		'activation': 'sigmoid'
-    		},
-			'Dense2':
-			{
-				'n': 2,
-				'activation': 'linear'
-			}
-			
+			# 'Dense1': {'n': 1, 'activation': 'sigmoid'},
+			# 'Dense2': {'n': 6, 'activation': 'sigmoid'},
+			'Dense1': {'n': 1, 'activation': 'linear'}
 		}
 
-model = NN(X, Y, layers, lr=0.0001, Epochs=200)
+model = NN(X, Y, layers, lr=0.1, Epochs=15)
 
 
 result = model.train()
-print(f"out: {result}")
+# model.predict()
 
-
-
-
-# self.weights['b1'] = self.weights['b1'] - self.out[-1].reshape(1, 1) @ (
-				# 	self.lr * -1 * 1 * error * self.weights['W2'].T @ np.diagflat(self.out[1] * (1 - self.out[1])))
-
-# self.weights['W1'] = self.weights['W1'] - self.out[-1].reshape(1, 1) @ (
-				# 	self.lr * -1 * 1 * error * self.weights['W2'].T @ np.diagflat(self.out[1] * (1 - self.out[1]))) * inp
-
-# def Dense(self, n):
 
 
 
@@ -137,39 +126,6 @@ print(f"out: {result}")
 #     y = (x * 2) + 1
 #     return x, y
 
-
-# class NeuralNetwork:
-#     def init(self, n1=1, n2=4, n3=5, n4=1, lr=0.001, epoch=2000, a=1, b=-1, rate_train=0.75):
-#         self.data = get_ds(200)
-#         self.data = np.asarray(self.data)
-#         np.random.shuffle(self.data)
-#         self.mean = self.data.mean(0)
-#         self.std = self.data.std(0)
-#         # self.data = (self.data - self.mean) / self.std
-#         self.data_column = np.shape(self.data)[1]
-#         self.data_row = np.shape(self.data)[0]
-#         self.lr = lr
-#         self.n0 = 1
-#         self.n1 = n1
-#         self.epoch = epoch
-#         self.a = a
-#         self.b = b
-#         self.rate_train = rate_train
-#         self.num_train = round(self.data_row)
-#         self.data_train = self.data[:self.num_train]
-#         self.w1 = np.random.uniform(b, a, (self.n0, self.n1))
-#         self.w2 = np.random.uniform(b, a, (self.n1, 1))
-#         # self.w3 = np.random.uniform(b, a, (self.n2, self.n3))
-#         # self.w4 = np.random.uniform(b, a, (self.n3, self.n4))
-#         self.error_train = []
-#         self.error_test = []
-#         self.output_train = []
-#         self.output_test = []
-#         self.mse_train = []
-#         self.mse_test = []
-
-#     def sig(self, x):
-#         return 1 / (1 + np.exp(-x))
 
 #     def train(self):
 #         for i in range(self.epoch):
