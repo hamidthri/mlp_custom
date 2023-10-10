@@ -3,11 +3,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 class NN():
-	def __init__(self, X, Y, layer, lr, Epochs):
+	def __init__(self, X_train, Y_train, X_test, Y_test, layer, lr, Epochs):
 		self.Epochs = Epochs
 		self.lr = lr
-		self.Y = Y
-		self.X = X
+		self.Y_train = Y_train
+		self.X_train = X_train
+		self.X_test = X_test
+		self.Y_test = Y_test
+
+
 		self.layer = layer
 
 		self.weights = {}
@@ -22,6 +26,9 @@ class NN():
 			self.weights["b{}".format(i)] = np.random.uniform(-1, 1, (self.layer["Dense{}".format(i)]["n"], 1))
 
 
+	def my_softmax(self, z):
+		a = np.exp(z) / np.sum(np.exp(z))
+		return a
 	def sig(self, z):
 		return 1 / (1 + np.exp(-z))
 
@@ -50,70 +57,116 @@ class NN():
 			return self.d_sig(z)
 		elif activation == 'linear':
 			return np.eye(z.shape[0])
-	
-	def predict(self):
-		for j in (range(self.X.shape[0])):
-			inp = self.X[j, :].reshape(-1, 1)
-			self.outs['a0'] = inp
-			for i in range(1, len(self.layer) + 1):
-				z = np.matmul(self.weights['W{}'.format(i)], self.outs['a{}'.format(i - 1)]) + self.weights['b{}'.format(i)]
-				self.outs["a{}".format(i)] = self.activations(i, z)
-			print(f"predicting for {X[j, :]}: {self.outs['a{}'.format(len(self.layer))][-1]}")
-		# return self.outs[-1]
+
 	def FF(self):
 		for i in range(1, len(self.layer) + 1):
 			z = np.matmul(self.weights['W{}'.format(i)], self.outs['a{}'.format(i - 1)]) + self.weights['b{}'.format(i)]
 			self.outs["a{}".format(i)] = self.activations(i, z)
 			self.df['df{}'.format(i)] = self.d_activations(i, z)
-		return [self.outs["a{}".format(i)] for i in range(len(self.outs))]
+		return self.outs
 
 	def chain_rule(self, error):
 		self.da['da{}'.format(len(self.layer))] = error
 		for i in range(len(self.layer), 1, -1):
 			self.da['da{}'.format(i - 1)] = (self.df['df{}'.format(i)] @ self.weights['W{}'.format(i)]).T @  self.da['da{}'.format(i)]
-	def back_prob(self, i, inp):
-		error = self.Y[i, :] - self.outs["a{}".format(len(self.layer))]
+	def back_prob(self, i):
+		error = self.Y_train[i, :] - self.outs["a{}".format(len(self.layer))]
 		self.chain_rule(error)
 		for i in range(1, len(self.layer) + 1):
-			self.dw['dW{}'.format(i)] = - (self.lr * self.df['df{}'.format(i)] @ self.da['da{}'.format(i)]) @ (self.outs['a{}'.format(i - 1)]).T
-			self.dw['db{}'.format(i)] = - (self.lr * self.df['df{}'.format(i)] @ self.da['da{}'.format(i)])
+			self.dw['dW{}'.format(i)] = - (self.df['df{}'.format(i)] @ self.da['da{}'.format(i)]) @ (self.outs['a{}'.format(i - 1)]).T
+			self.dw['db{}'.format(i)] = - (self.df['df{}'.format(i)] @ self.da['da{}'.format(i)])
 		return self.dw
 	def update(self):
 		for j in range(1, len(self.layer) + 1):
-			self.weights['W{}'.format(j)] = self.weights['W{}'.format(j)] - self.dw['dW{}'.format(j)]
-			self.weights['b{}'.format(j)] = self.weights['b{}'.format(j)] - self.dw['db{}'.format(j)]
+			self.weights['W{}'.format(j)] = self.weights['W{}'.format(j)] - self.lr * self.dw['dW{}'.format(j)]
+			self.weights['b{}'.format(j)] = self.weights['b{}'.format(j)] - self.lr * self.dw['db{}'.format(j)]
 	def train(self):
 		self.weight()
 		print(f"W: {self.weights}")
 		for j in range(self.Epochs):
-			for i in (range(self.X.shape[0])):
-				inp = self.X[i, :].reshape(-1, 1)
+			for i in (range(self.X_train.shape[0])):
+				inp = self.X_train[i, :].reshape(-1, 1)
 				self.outs['a0'] = inp
 				self.output = self.FF()
-				self.dw = self.back_prob(i, inp)
+				self.dw = self.back_prob(i)
 				self.update()
 				# print(f"outs: {self.out}")
-				
-				
-			loss = self.MSE(self.Y[i, :], self.output[-1])
+			loss = self.MSE(self.Y_train[i, :], self.output['a{}'.format(len(self.layer))])
 			print(f"loss: {loss}")
 		print(f"W: {self.weights}")
+	def predict(self):
+		a = []
+		for j in (range(self.X_test.shape[0])):
+			inp = self.X_test[j, :].reshape(-1, 1)
+			self.outs['a0'] = inp
+			for i in range(1, len(self.layer) + 1):
+				z = np.matmul(self.weights['W{}'.format(i)], self.outs['a{}'.format(i - 1)]) + self.weights[
+					'b{}'.format(i)]
+				self.outs["a{}".format(i)] = np.round(self.activations(i, z)) if self.layer["Dense{}".format(i)]['activation'] == 'sigmoid' else self.activations(i, z)
+				a.append(self.outs['a{}'.format(len(self.layer))])
+			print(f"predicting for {self.X_test[j, :]}: {self.outs['a{}'.format(len(self.layer))][-1]}, actual value is : {self.Y_test[j, :]}")
+		return a
+	def plot(self):
+		x = np.linspace(-2, 2, 400)
+		# y = self.predict()
+		# y =
+		plt.figure(figsize=(8, 6))
+		plt.scatter(self.X_train, self.Y_train, color='blue', label='Features (X_train)')
+		plt.scatter(self.X_test, self.Y_test, color='red', label='Features (X_train)')
+		plt.plot(x, np.asarray(y).reshape(-1, 1).squeeze(), color='blue', label='y = wx + b')  # Modify the label accordingly
+		plt.xlabel('x')
+		plt.ylabel('y')
+		plt.title('Plot of the line y = 2x + 3')
+		plt.legend()
+		plt.grid(True)
+		plt.show()
+
 
 X = np.random.random((1000, 1))
 
-Y = 1 * X + 1
+# Y = 1 * X + 1
 
 layers = {
 			# 'Dense1': {'n': 1, 'activation': 'sigmoid'},
-			# 'Dense2': {'n': 6, 'activation': 'sigmoid'},
-			'Dense1': {'n': 1, 'activation': 'linear'}
+			'Dense1': {'n': 8, 'activation': 'sigmoid'},
+			'Dense2': {'n': 1, 'activation': 'sigmoid'}
 		}
 
-model = NN(X, Y, layers, lr=0.1, Epochs=15)
+def get_ds():
+	mean_class1, std_class1 = 10, 0.5
+	mean_class2, std_class2 = 13, 0.5
+
+	# Generate random data points for each class
+	num_samples = 100
+	class1_data = np.random.normal(mean_class1, std_class1, num_samples)
+	class2_data = np.random.normal(mean_class2, std_class2, num_samples)
+
+	data = np.concatenate((class1_data.reshape(-1, 1), class2_data.reshape(-1, 1)), axis=0)
+	labels = np.concatenate((np.zeros((num_samples, 1)), np.ones((num_samples, 1))), axis=0)
+	data_with_labels = np.concatenate((data, labels), axis=1)
+
+	data_with_labels[:, 0] = (data_with_labels[:, 0] - np.mean(data_with_labels[:, 0])) / (
+		np.std(data_with_labels[:, 0]))
+	np.random.shuffle(data_with_labels)
+	X = data_with_labels[:, :-1]
+	y = data_with_labels[:, -1]
+	train_split = 0.8
+	num_samples = len(data_with_labels)
+	num_train_samples = int(train_split * num_samples)
+
+	X_train, X_test = X[:num_train_samples], X[num_train_samples:]
+	Y_train, Y_test = y[:num_train_samples], y[num_train_samples:]
+
+	return X_train, Y_train.reshape(-1, 1), X_test, Y_test.reshape(-1, 1)
 
 
-result = model.train()
-# model.predict()
+X_train, Y_train, X_test, Y_test = get_ds()
+model = NN(X_train, Y_train, X_test, Y_test, layers, lr=0.01, Epochs=150)
+
+
+model.train()
+model.predict()
+model.plot()
 
 
 
