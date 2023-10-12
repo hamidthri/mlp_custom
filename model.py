@@ -31,23 +31,39 @@ class Activations:
 
 	def MSE(self, label, out):
 		return 0.5 * (label - out)**2
+	def crossentropy(self, label, out):
+		epsilon = 1e-10
+		out = np.clip(out, epsilon, 1 - epsilon)
+		loss = -np.sum(label * np.log(out + epsilon))
+		# num_samples = label.shape[0]
+		# loss /= num_samples
+		return loss
 
+		def binarycrossentropy(self, label, out):
+			epsilon = 1e-15
+
+			y_pred = np.clip(out, epsilon, 1 - epsilon)
+			loss = - (label * np.log(out) + (1 - label) * np.log(1 - y_pred))
+			loss = np.mean(loss)
+
+			return loss
 	def activations(self, i, z):
 		activation = self.layer["Dense{}".format(i)]['activation']
 		if activation == 'sigmoid':
 			return self.sig(z)
 		elif activation == 'linear':
 			return self.linear(z)
+		elif activation == 'softmax':
+			return self.my_softmax(z)
 
 	def d_activations(self, i, z):
 		activation = self.layer["Dense{}".format(i)]['activation']
 		if activation == 'sigmoid':
 			return self.d_sig(z)
-		elif activation == 'linear':
+		elif activation == 'linear' or activation == 'softmax':
 			return np.eye(z.shape[0])
-
 class NN(Activations):
-	def __init__(self, X_train, Y_train, X_test, Y_test, layer, lr: float, Epochs: int):
+	def __init__(self, X_train, Y_train, X_test, Y_test, layer, loss: str, lr: float, Epochs: int):
 		self.Epochs = Epochs
 		self.lr = lr
 		self.Y_train = Y_train
@@ -55,14 +71,12 @@ class NN(Activations):
 		self.X_test = X_test
 		self.Y_test = Y_test
 		self.layer = layer
+		self.loss = loss
 		self.initialize_weight()
 		self.outs = {}
 		self.dw = {}
 		self.df = {}
 		self.da = {}
-
-
-
 	def FF(self):
 		for i in range(1, len(self.layer) + 1):
 			z = np.matmul(self.weights['W{}'.format(i)], self.outs['a{}'.format(i - 1)]) + self.weights['b{}'.format(i)]
@@ -92,7 +106,12 @@ class NN(Activations):
 				self.output = self.FF()
 				self.error = self.Y_train[i, :] - self.outs["a{}".format(len(self.layer))]
 				self.update()
-			loss = self.MSE(self.Y_train[i, :], self.output['a{}'.format(len(self.layer))])
+			if self.loss == 'MSE':
+				loss = self.MSE(self.Y_train[i, :], self.output['a{}'.format(len(self.layer))])
+			elif self.loss == "CrossEntropy":
+				loss = self.crossentropy(self.Y_train[i, :], self.output['a{}'.format(len(self.layer))])
+			elif self.loss == "BinaryCrossEntropy":
+				loss = self.binarycrossentropy(self.Y_train[i, :], self.output['a{}'.format(len(self.layer))])
 			print(f"loss: {loss}")
 		print(f"W: {self.weights}")
 	def predict(self, X, Y):
@@ -128,8 +147,6 @@ class NN(Activations):
 			true_class_index = np.where(classes == true_labels[i])[0][0]
 			predicted_class_index = np.where(classes == predicted_labels[i])[0][0]
 			confusion_matrix[true_class_index][predicted_class_index] += 1
-
-		# Plot confusion matrix as a heatmap
 		plt.figure(figsize=(len(classes), len(classes)))
 		plt.imshow(confusion_matrix, interpolation='nearest', cmap=plt.cm.Blues)
 		plt.title('Confusion Matrix')
@@ -139,8 +156,6 @@ class NN(Activations):
 		plt.yticks(tick_marks, classes)
 		plt.xlabel('Predicted Label')
 		plt.ylabel('True Label')
-
-		# Display the confusion matrix values on the heatmap
 		for i in range(len(classes)):
 			for j in range(len(classes)):
 				plt.text(j, i, str(int(confusion_matrix[i, j])), horizontalalignment='center', color='black')
@@ -180,7 +195,7 @@ class2_data = np.random.normal(mean_class2, std_class2, num_samples)
 
 
 X_train, Y_train, X_test, Y_test = get_ds(class1_data, class2_data)
-model = NN(X_train, Y_train, X_test, Y_test, layers, lr=0.01, Epochs=150)
+model = NN(X_train, Y_train, X_test, Y_test, layers, 'MSE', lr=0.01, Epochs=150, )
 
 
 model.train()
