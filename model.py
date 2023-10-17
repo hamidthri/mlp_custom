@@ -195,7 +195,7 @@ class2_data = np.random.normal(mean_class2, std_class2, num_samples)
 
 
 X_train, Y_train, X_test, Y_test = get_ds(class1_data, class2_data)
-model = NN(X_train, Y_train, X_test, Y_test, layers, 'MSE', lr=0.01, Epochs=150, )
+model = NN(X_train, Y_train, X_test, Y_test, layers, 'MSE', lr=0.01, Epochs=150)
 
 
 model.train()
