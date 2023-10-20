@@ -186,7 +186,7 @@ def get_ds(class1_data, class2_data):
 
 
 
-mean_class1, std_class1 = 10, 0.3
+mean_class1, std_class1 = 10, 0.1
 mean_class2, std_class2 = 11, 0.2
 num_samples = 100
 class1_data = np.random.normal(mean_class1, std_class1, num_samples)
