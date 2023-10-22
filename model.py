@@ -39,14 +39,13 @@ class Activations:
 		# loss /= num_samples
 		return loss
 
-		def binarycrossentropy(self, label, out):
-			epsilon = 1e-15
+	def binarycrossentropy(self, label, out):
+		epsilon = 1e-15
+		y_pred = np.clip(out, epsilon, 1 - epsilon)
+		loss = - (label * np.log(out) + (1 - label) * np.log(1 - y_pred))
+		loss = np.mean(loss)
+		return loss
 
-			y_pred = np.clip(out, epsilon, 1 - epsilon)
-			loss = - (label * np.log(out) + (1 - label) * np.log(1 - y_pred))
-			loss = np.mean(loss)
-
-			return loss
 	def activations(self, i, z):
 		activation = self.layer["Dense{}".format(i)]['activation']
 		if activation == 'sigmoid':
@@ -163,9 +162,9 @@ class NN(Activations):
 		plt.show()
 
 layers = {
-			# 'Dense1': {'n': 1, 'activation': 'sigmoid'},
-			'Dense1': {'n': 1, 'activation': 'sigmoid'},
-			# 'Dense2': {'n': 1, 'activation': 'sigmoid'}
+			'Dense1': {'n': 5, 'activation': 'sigmoid'},
+			'Dense2': {'n': 4, 'activation': 'sigmoid'},
+			'Dense3': {'n': 1, 'activation': 'sigmoid'}
 		}
 
 def get_ds(class1_data, class2_data):
@@ -184,20 +183,14 @@ def get_ds(class1_data, class2_data):
 	Y_train, Y_test = y[:num_train_samples], y[num_train_samples:]
 	return X_train, Y_train.reshape(-1, 1), X_test, Y_test.reshape(-1, 1)
 
-
-
 mean_class1, std_class1 = 10, 0.1
 mean_class2, std_class2 = 11, 0.2
 num_samples = 100
 class1_data = np.random.normal(mean_class1, std_class1, num_samples)
 class2_data = np.random.normal(mean_class2, std_class2, num_samples)
 
-
-
 X_train, Y_train, X_test, Y_test = get_ds(class1_data, class2_data)
 model = NN(X_train, Y_train, X_test, Y_test, layers, 'MSE', lr=0.01, Epochs=150)
-
-
 model.train()
 predicted = model.predict(X_test, Y_test)
 model.plot_confusion_matrix(Y_test, predicted)
