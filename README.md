@@ -35,3 +35,31 @@ layers = {
 }
 
 ```
+
+## Training the Network
+Create an instance of the NN class, passing the training and testing data, layer configuration, loss function ('MSE' in this case), learning rate, and the number of epochs.
+
+
+```
+model = NN(X_train, Y_train, X_test, Y_test, layers, 'MSE', lr=0.01, Epochs=150)
+model.train()
+
+```
+
+
+## Making Predictions
+You can make predictions on new data using the predict method.
+```
+predicted = model.predict(X_test, Y_test)
+
+```
+
+## Confusion Matrix
+The code includes a function to plot a confusion matrix to evaluate the performance of the model.
+
+```
+model.plot_confusion_matrix(Y_test, predicted)
+
+```
+
+Feel free to modify and extend the code to suit your specific use case! If you have any questions or encounter issues, please don't hesitate to reach out. Happy coding!
