@@ -158,7 +158,7 @@ class NN(Activations):
 		plt.ylabel('True Label')
 		for i in range(len(classes)):
 			for j in range(len(classes)):
-				plt.text(j, i, str(int(confusion_matrix[i, j])), horizontalalignment='center', color='black')
+				plt.text(j, i, str(int(confusion_matrix[i, j])), horizontalalignment='center', color='red')
 
 		plt.show()
 
