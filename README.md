@@ -23,7 +23,9 @@ X_train, Y_train, X_test, Y_test = get_ds(class1_data, class2_data)
 ```
 
 ## Network Configuration
-Define the architecture of your neural network by specifying the number of nodes and activation functions for each layer in the layers dictionary. name of each layer has to be __Danse?__.
+
+Define the architecture of your neural network by specifying the number of nodes and activation functions for each layer in the `layers` dictionary. The name of each layer should be in the format `Danse*i*`. `n` represents the number of neurons in each layer, and `'activation'` specifies the activation function for each layer.
+
 
 ```
 layers = {
