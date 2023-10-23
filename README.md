@@ -9,4 +9,4 @@ Make sure you have the following libraries installed before running the code:
 ```bash
 pip install numpy matplotlib tqdm
 ```
-#Usage
+# Usage
