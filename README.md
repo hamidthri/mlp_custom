@@ -6,11 +6,11 @@ This repository contains a simple implementation of a neural network using Pytho
 
 Make sure you have the following libraries installed before running the code:
 ```bash
-pip install numpy matplotlib tqdm'''
+pip install numpy matplotlib tqdm
 
 
 
-## Usage
+# Usage
 
 ### Data Preparation
 
