@@ -19,6 +19,8 @@ class Activations:
 		return a
 	def sig(self, z):
 		return 1 / (1 + np.exp(-z))
+	def tanh(self, z):
+		return (np.exp(z) - np.exp(-z)) / (np.exp(z) + np.exp(-z))
 
 	def linear(self, z):
 		return z
@@ -29,6 +31,8 @@ class Activations:
 	def d_sig(self, z):
 		return np.diagflat(self.sig(z) * (1 - self.sig(z)))
 
+	def d_tanh(self, z):
+		return np.diagflat(1 - self.tanh(z) ** 2)
 	def MSE(self, label, out):
 		return 0.5 * (label - out)**2
 	def crossentropy(self, label, out):
@@ -50,6 +54,8 @@ class Activations:
 		activation = self.layer["Dense{}".format(i)]['activation']
 		if activation == 'sigmoid':
 			return self.sig(z)
+		if activation == 'tanh':
+			return self.tanh(z)
 		elif activation == 'linear':
 			return self.linear(z)
 		elif activation == 'softmax':
@@ -59,6 +65,8 @@ class Activations:
 		activation = self.layer["Dense{}".format(i)]['activation']
 		if activation == 'sigmoid':
 			return self.d_sig(z)
+		if activation == 'tanh':
+			return self.d_tanh(z)
 		elif activation == 'linear' or activation == 'softmax':
 			return np.eye(z.shape[0])
 class NN(Activations):
@@ -163,7 +171,7 @@ class NN(Activations):
 
 layers = {
 			'Dense1': {'n': 5, 'activation': 'sigmoid'},
-			'Dense2': {'n': 4, 'activation': 'sigmoid'},
+			'Dense2': {'n': 4, 'activation': 'tanh'},
 			'Dense3': {'n': 1, 'activation': 'sigmoid'}
 		}
 
@@ -184,7 +192,7 @@ def get_ds(class1_data, class2_data):
 	return X_train, Y_train.reshape(-1, 1), X_test, Y_test.reshape(-1, 1)
 
 mean_class1, std_class1 = 10, 0.1
-mean_class2, std_class2 = 11, 0.2
+mean_class2, std_class2 = 17, 0.2
 num_samples = 100
 class1_data = np.random.normal(mean_class1, std_class1, num_samples)
 class2_data = np.random.normal(mean_class2, std_class2, num_samples)
